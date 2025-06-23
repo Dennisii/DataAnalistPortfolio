@@ -161,6 +161,15 @@
   </nav>
 
   <div class="container">
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="service-form p-3">
+          <label for="barber-name" class="form-label fw-bold">Nombre del Barbero:</label>
+          <input type="text" class="form-control" id="barber-name" placeholder="Ingrese el nombre del barbero">
+        </div>
+      </div>
+    </div>
+    
     <div class="row">
       <div class="col-md-6">
         <!-- Botones de servicio -->
@@ -172,7 +181,7 @@
             <i class="fas fa-user-alt me-2"></i>Corte de Barba $6
           </button>
           <button id="full-btn" class="service-btn flex-grow-1">
-            <i class="fas fa-star me-2"></i>Servicio Completo $11
+            <i class="fas fa-star me-2"></i>Servio Completo $11
           </button>
         </div>
 
@@ -190,7 +199,7 @@
               </div>
               <div class="col-md-6">
                 <label for="exit-time" class="form-label">Hora de Salida</label>
-                <input type="time" class="form-control" id="exit-time" name="exitTime" readonly>
+                <input type="time" class="form-control" id="exit-time" name="exitTime" style="background-color: #f8f9fa; border-color: var(--accent-color);">
               </div>
             </div>
             
@@ -220,7 +229,14 @@
             </div>
             
             <div class="d-grid">
-              <button type="submit" class="submit-btn">Guardar Servicio</button>
+              <div class="row">
+                <div class="col-6">
+                  <button type="submit" class="submit-btn w-100">Guardar Servicio</button>
+                </div>
+                <div class="col-6">
+                  <button type="button" id="cancel-service-btn" class="submit-btn w-100" style="background-color: #6c757d;">Cancelar Servicio</button>
+                </div>
+              </div>
             </div>
           </form>
         </div>
@@ -323,7 +339,7 @@
 
           <!-- Add the new Reset Day button -->
           <div class="d-grid mt-2">
-            <button id="reset-day" class="submit-btn" style="background-color: #e74c3c;">
+            <button id="reset-day" class="submit-btn" style="background-color: #563ce7;">
               <i class="fas fa-redo-alt me-2"></i>Reiniciar Día
             </button>
           </div>
@@ -425,13 +441,15 @@
     serviceDataForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
-      // Establecer la hora de salida
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      exitTimeInput.value = `${hours}:${minutes}`;
+      // Only set exit time if it's empty
+      if (!exitTimeInput.value) {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        exitTimeInput.value = `${hours}:${minutes}`;
+      }
       
-      // Crear nuevo servicio
+      // Create new service
       const newService = {
         id: Date.now(),
         type: serviceTypeInput.value,
@@ -442,7 +460,8 @@
         advancePayment: parseFloat(advancePaymentInput.value),
         tipAmount: parseFloat(tipAmountInput.value),
         additionalNotes: additionalNotesTextarea.value,
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        barberName: document.getElementById('barber-name').value || 'No especificado'
       };
       
       // Agregar servicio a la lista
@@ -612,90 +631,114 @@
       });
     }
     
-    // Función para descargar PDF
+    // Add Cancel button functionality
+    document.getElementById('cancel-service-btn').addEventListener('click', function() {
+      serviceDataForm.reset();
+      additionalNotesTextarea.value = 'Sin Novedad';
+      serviceForm.style.display = 'none';
+      
+      // Remove highlight from buttons
+      haircutBtn.classList.remove('service-btn-active');
+      beardBtn.classList.remove('service-btn-active');
+      fullBtn.classList.remove('service-btn-active');
+    });
+
+    // Update the PDF generation to include barber name and use a single page layout
     document.getElementById('download-pdf').addEventListener('click', function() {
       const { jsPDF } = window.jspdf;
       
-      // Crear nueva instancia de jsPDF
+      // Create new jsPDF instance
       const doc = new jsPDF();
       
-      // Título
+      // Title
       doc.setFontSize(22);
-      doc.text("Reporte Diario de Barbería", 105, 20, { align: "center" });
+      doc.text("Reporte Diario de Barbería", 105, 15, { align: "center" });
       
-      // Fecha
+      // Date and Barber name
       const today = new Date();
       const dateStr = today.toLocaleDateString();
-      doc.setFontSize(12);
-      doc.text(`Fecha: ${dateStr}`, 105, 30, { align: "center" });
+      const barberName = document.getElementById('barber-name').value || 'No especificado';
       
-      // Métricas
       doc.setFontSize(14);
-      doc.text("Métricas del Día", 20, 45);
+      doc.text(`Fecha: ${dateStr}`, 105, 25, { align: "center" });
+      doc.text(`Barbero: ${barberName}`, 105, 32, { align: "center" });
+      
+      // Metrics - First column
+      doc.setFontSize(16);
+      doc.text("Métricas del Día", 20, 42);
       
       doc.setFontSize(12);
-      doc.text(`Total Efectivo: ${totalCashEl.textContent}`, 20, 55);
-      doc.text(`Total Transferencia: ${totalTransferEl.textContent}`, 20, 65);
-      doc.text(`Total Ingresos: ${totalIncomeEl.textContent}`, 20, 75);
-      doc.text(`Cantidad Servicios: ${totalServicesEl.textContent}`, 20, 85);
-      doc.text(`Cortes de Cabello: ${haircutCountEl.textContent}`, 20, 95);
-      doc.text(`Cortes de Barba: ${beardCountEl.textContent}`, 20, 105);
-      doc.text(`Servicios Completos: ${fullCountEl.textContent}`, 20, 115);
-      doc.text(`Total Propinas: ${totalTipsEl.textContent}`, 20, 125);
-      doc.text(`Total Anticipos: ${totalAdvanceEl.textContent}`, 20, 135);
-      doc.text(`Ganancia Neta Diaria: ${netProfitEl.textContent}`, 20, 145);
+      doc.text(`Total Efectivo: ${totalCashEl.textContent}`, 20, 52);
+      doc.text(`Total Transferencia: ${totalTransferEl.textContent}`, 20, 59);
+      doc.text(`Total Ingresos: ${totalIncomeEl.textContent}`, 20, 66);
+      doc.text(`Cantidad Servicios: ${totalServicesEl.textContent}`, 20, 73);
+      doc.text(`Cortes de Cabello: ${haircutCountEl.textContent}`, 20, 80);
       
-      // Añadir Notas Adicionales del Día
-      doc.setFontSize(14);
-      doc.text("Notas Adicionales del Día", 20, 160);
-      doc.setFontSize(12);
+      // Metrics - Second column
+      doc.text(`Cortes de Barba: ${beardCountEl.textContent}`, 110, 52);
+      doc.text(`Servicios Completos: ${fullCountEl.textContent}`, 110, 59);
+      doc.text(`Total Propinas: ${totalTipsEl.textContent}`, 110, 66);
+      doc.text(`Total Anticipos: ${totalAdvanceEl.textContent}`, 110, 73);
+      doc.text(`Ganancia Neta Diaria: ${netProfitEl.textContent}`, 110, 80);
       
-      // Extraer las notas adicionales de todos los servicios del día
+      // Additional Notes section
+      doc.setFontSize(16);
+      doc.text("Notas Adicionales del Día", 20, 95);
+      doc.setFontSize(11);
+      
+      // Extract notes
       const notesContainer = document.getElementById('additional-notes-list');
       
-      // Si no hay notas, mostrar mensaje por defecto
+      // If no notes, show message by default
       if (notesContainer.querySelector('.text-muted')) {
-        doc.text("No hay notas adicionales registradas hoy.", 20, 170);
+        doc.text("No hay notas adicionales registradas hoy.", 20, 105);
       } else {
-        // Extraer y formatear todas las notas del día
-        let yPos = 170;
+        // Extract and format all notes for the day
+        let yPos = 105;
         const noteCards = notesContainer.querySelectorAll('.note-card');
         
-        noteCards.forEach((card, index) => {
+        // Limit notes to fit on page
+        const maxNotes = Math.min(noteCards.length, 6);
+        
+        for (let i = 0; i < maxNotes; i++) {
+          const card = noteCards[i];
           const timeEl = card.querySelector('.note-time');
           const contentEl = card.querySelector('.note-content');
           
           if (timeEl && contentEl) {
-            // Si no hay suficiente espacio en la página actual, crear nueva página
-            if (yPos > 270) {
-              doc.addPage();
-              yPos = 20;
+            // Truncate content if too long
+            let content = contentEl.textContent;
+            if (content.length > 70) {
+              content = content.substring(0, 67) + '...';
             }
             
-            doc.text(`${timeEl.textContent}: ${contentEl.textContent}`, 20, yPos);
-            yPos += 10;
+            doc.text(`${timeEl.textContent}: ${content}`, 20, yPos);
+            yPos += 7;
           }
-        });
+        }
+        
+        // Add message if not all notes fit
+        if (noteCards.length > maxNotes) {
+          doc.text(`(+ ${noteCards.length - maxNotes} notas adicionales)`, 20, yPos);
+        }
       }
       
-      // Capturar los gráficos para agregarlos al PDF
-      html2canvas(document.getElementById('services-chart')).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
+      // Capture charts and add them to the same page
+      Promise.all([
+        html2canvas(document.getElementById('services-chart')),
+        html2canvas(document.getElementById('payment-chart'))
+      ]).then(([canvas1, canvas2]) => {
+        const imgData1 = canvas1.toDataURL('image/png');
+        const imgData2 = canvas2.toDataURL('image/png');
         
-        // Agregar nueva página para los gráficos
-        doc.addPage();
-        doc.setFontSize(14);
-        doc.text("Gráficos", 105, 20, { align: "center" });
+        // Add charts side by side at the bottom of the page with smaller size
+        doc.setFontSize(16);
+        doc.text("Gráficos", 105, 140, { align: "center" });
+        doc.addImage(imgData1, 'PNG', 30, 145, 65, 50);
+        doc.addImage(imgData2, 'PNG', 110, 145, 65, 50);
         
-        doc.addImage(imgData, 'PNG', 20, 30, 80, 60);
-        
-        html2canvas(document.getElementById('payment-chart')).then(canvas => {
-          const imgData2 = canvas.toDataURL('image/png');
-          doc.addImage(imgData2, 'PNG', 110, 30, 80, 60);
-          
-          // Guardar el PDF
-          doc.save(`Reporte_Barberia_${dateStr}.pdf`);
-        });
+        // Save the PDF
+        doc.save(`Reporte_Barberia_${dateStr}.pdf`);
       });
     });
     
@@ -733,3 +776,4 @@
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.
+</initial_code>
