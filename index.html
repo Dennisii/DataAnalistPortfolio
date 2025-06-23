@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Gestión de Barbería</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style id="app-style">
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #34495e;
+      --accent-color: #f39c12;
+      --light-color: #ecf0f1;
+      --dark-color: #2c3e50;
+    }
+    
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--light-color);
+      color: var(--dark-color);
+    }
+    
+    .navbar {
+      background-color: var(--primary-color);
+    }
+    
+    .service-btn {
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 10px;
+      transition: all 0.3s;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    
+    .service-btn:hover {
+      background-color: var(--accent-color);
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .service-btn-active {
+      background-color: var(--accent-color);
+    }
+    
+    .service-form {
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    
+    .metrics-panel {
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .metric-card {
+      background-color: var(--light-color);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .metric-title {
+      font-size: 0.9rem;
+      color: var(--secondary-color);
+      margin-bottom: 5px;
+    }
+    
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    .chart-container {
+      height: 200px;
+      margin: 20px 0;
+    }
+    
+    .submit-btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    
+    .submit-btn:hover {
+      background-color: #e67e22;
+      transform: translateY(-2px);
+    }
+    
+    .pdf-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    
+    .pdf-btn:hover {
+      background-color: #c0392b;
+      transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+      .service-btn {
+        width: 100%;
+        margin: 5px 0;
+      }
+      
+      .metrics-panel {
+        margin-top: 20px;
+      }
+    }
+    
+    .additional-notes-container {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .note-card {
+      background-color: var(--light-color);
+      border-left: 4px solid var(--accent-color);
+      border-radius: 4px;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+    
+    .note-time {
+      font-size: 0.8rem;
+      color: var(--secondary-color);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-dark mb-4">
+    <div class="container">
+      <span class="navbar-brand mb-0 h1">
+        <i class="fas fa-cut me-2"></i>Sistema de Gestión de Barbería
+      </span>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <!-- Botones de servicio -->
+        <div class="d-flex flex-wrap justify-content-between">
+          <button id="haircut-btn" class="service-btn flex-grow-1">
+            <i class="fas fa-cut me-2"></i>Corte de Cabello $7
+          </button>
+          <button id="beard-btn" class="service-btn flex-grow-1">
+            <i class="fas fa-user-alt me-2"></i>Corte de Barba $6
+          </button>
+          <button id="full-btn" class="service-btn flex-grow-1">
+            <i class="fas fa-star me-2"></i>Servicio Completo $11
+          </button>
+        </div>
+
+        <!-- Formulario de servicio -->
+        <div id="service-form" class="service-form mt-4" style="display: none;">
+          <h3 id="form-title" class="mb-4">Registro de Servicio</h3>
+          <form id="service-data-form">
+            <input type="hidden" id="service-type" name="serviceType" value="">
+            <input type="hidden" id="service-price" name="servicePrice" value="">
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="entry-time" class="form-label">Hora de Ingreso</label>
+                <input type="time" class="form-control" id="entry-time" name="entryTime" required>
+              </div>
+              <div class="col-md-6">
+                <label for="exit-time" class="form-label">Hora de Salida</label>
+                <input type="time" class="form-control" id="exit-time" name="exitTime" readonly>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="payment-method" class="form-label">Forma de Pago</label>
+              <select class="form-select" id="payment-method" name="paymentMethod" required>
+                <option value="">Seleccione una opción</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="advance-payment" class="form-label">Anticipo ($)</label>
+                <input type="number" class="form-control" id="advance-payment" name="advancePayment" min="0" value="0" required>
+              </div>
+              <div class="col-md-6">
+                <label for="tip-amount" class="form-label">Propina ($)</label>
+                <input type="number" class="form-control" id="tip-amount" name="tipAmount" min="0" value="0" required>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="additional-notes" class="form-label">Notas Adicionales</label>
+              <textarea class="form-control" id="additional-notes" name="additionalNotes" rows="2">Sin Novedad</textarea>
+            </div>
+            
+            <div class="d-grid">
+              <button type="submit" class="submit-btn">Guardar Servicio</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <!-- Panel de métricas -->
+        <div class="metrics-panel">
+          <h3 class="mb-4">Métricas del Día</h3>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="metric-card">
+                <div class="metric-title">Total Efectivo</div>
+                <div class="metric-value" id="total-cash">$0.00</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="metric-card">
+                <div class="metric-title">Total Transferencia</div>
+                <div class="metric-value" id="total-transfer">$0.00</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="metric-card">
+                <div class="metric-title">Total Ingresos</div>
+                <div class="metric-value" id="total-income">$0.00</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="metric-card">
+                <div class="metric-title">Cantidad Servicios</div>
+                <div class="metric-value" id="total-services">0</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mt-2">
+            <div class="col-md-4">
+              <div class="metric-card">
+                <div class="metric-title">Cortes de Cabello</div>
+                <div class="metric-value" id="haircut-count">0</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="metric-card">
+                <div class="metric-title">Cortes de Barba</div>
+                <div class="metric-value" id="beard-count">0</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="metric-card">
+                <div class="metric-title">Servicios Completos</div>
+                <div class="metric-value" id="full-count">0</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mt-2">
+            <div class="col-md-6">
+              <div class="metric-card">
+                <div class="metric-title">Total Propinas</div>
+                <div class="metric-value" id="total-tips">$0.00</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="metric-card">
+                <div class="metric-title">Total Anticipos</div>
+                <div class="metric-value" id="total-advance">$0.00</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="metric-card mt-3">
+            <div class="metric-title">Ganancia Neta Diaria</div>
+            <div class="metric-value" id="net-profit">$0.00</div>
+          </div>
+          
+          <!-- Gráficos -->
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <h5 class="text-center">Servicios por Tipo</h5>
+              <div class="chart-container">
+                <canvas id="services-chart"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h5 class="text-center">Servicios por Forma de Pago</h5>
+              <div class="chart-container">
+                <canvas id="payment-chart"></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-grid mt-4">
+            <button id="download-pdf" class="pdf-btn">
+              <i class="fas fa-file-pdf me-2"></i>Descargar PDF
+            </button>
+          </div>
+
+          <!-- Add the new Reset Day button -->
+          <div class="d-grid mt-2">
+            <button id="reset-day" class="submit-btn" style="background-color: #e74c3c;">
+              <i class="fas fa-redo-alt me-2"></i>Reiniciar Día
+            </button>
+          </div>
+
+          <!-- Add the new Additional Notes section -->
+          <div class="mt-4">
+            <h5 class="mb-3">Notas Adicionales del Día</h5>
+            <div id="additional-notes-list" class="additional-notes-container">
+              <p class="text-muted">No hay notas adicionales registradas hoy.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script id="app-script">
+    // Inicialización de datos
+    let services = JSON.parse(localStorage.getItem('barberServices')) || [];
+    
+    // Referencias a elementos del DOM
+    const serviceForm = document.getElementById('service-form');
+    const formTitle = document.getElementById('form-title');
+    const serviceTypeInput = document.getElementById('service-type');
+    const servicePriceInput = document.getElementById('service-price');
+    const entryTimeInput = document.getElementById('entry-time');
+    const exitTimeInput = document.getElementById('exit-time');
+    const paymentMethodSelect = document.getElementById('payment-method');
+    const advancePaymentInput = document.getElementById('advance-payment');
+    const tipAmountInput = document.getElementById('tip-amount');
+    const additionalNotesTextarea = document.getElementById('additional-notes');
+    const serviceDataForm = document.getElementById('service-data-form');
+    
+    // Botones de servicio
+    const haircutBtn = document.getElementById('haircut-btn');
+    const beardBtn = document.getElementById('beard-btn');
+    const fullBtn = document.getElementById('full-btn');
+    
+    // Elementos de métricas
+    const totalCashEl = document.getElementById('total-cash');
+    const totalTransferEl = document.getElementById('total-transfer');
+    const totalIncomeEl = document.getElementById('total-income');
+    const totalServicesEl = document.getElementById('total-services');
+    const haircutCountEl = document.getElementById('haircut-count');
+    const beardCountEl = document.getElementById('beard-count');
+    const fullCountEl = document.getElementById('full-count');
+    const totalTipsEl = document.getElementById('total-tips');
+    const totalAdvanceEl = document.getElementById('total-advance');
+    const netProfitEl = document.getElementById('net-profit');
+    
+    // Gráficos
+    let servicesChart;
+    let paymentChart;
+    
+    // Función para establecer la hora actual en el campo de entrada
+    const setCurrentTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      entryTimeInput.value = `${hours}:${minutes}`;
+    };
+    
+    // Funciones para los botones de servicio
+    haircutBtn.addEventListener('click', () => {
+      showServiceForm('haircut', 'Corte de Cabello', 7);
+    });
+    
+    beardBtn.addEventListener('click', () => {
+      showServiceForm('beard', 'Corte de Barba', 6);
+    });
+    
+    fullBtn.addEventListener('click', () => {
+      showServiceForm('full', 'Servicio Completo', 11);
+    });
+    
+    // Función para mostrar el formulario de servicio
+    function showServiceForm(type, title, price) {
+      formTitle.textContent = title;
+      serviceTypeInput.value = type;
+      servicePriceInput.value = price;
+      serviceForm.style.display = 'block';
+      setCurrentTime();
+      
+      // Resaltar el botón seleccionado
+      haircutBtn.classList.remove('service-btn-active');
+      beardBtn.classList.remove('service-btn-active');
+      fullBtn.classList.remove('service-btn-active');
+      
+      if (type === 'haircut') {
+        haircutBtn.classList.add('service-btn-active');
+      } else if (type === 'beard') {
+        beardBtn.classList.add('service-btn-active');
+      } else if (type === 'full') {
+        fullBtn.classList.add('service-btn-active');
+      }
+    }
+    
+    // Manejar el envío del formulario
+    serviceDataForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      // Establecer la hora de salida
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      exitTimeInput.value = `${hours}:${minutes}`;
+      
+      // Crear nuevo servicio
+      const newService = {
+        id: Date.now(),
+        type: serviceTypeInput.value,
+        price: parseFloat(servicePriceInput.value),
+        entryTime: entryTimeInput.value,
+        exitTime: exitTimeInput.value,
+        paymentMethod: paymentMethodSelect.value,
+        advancePayment: parseFloat(advancePaymentInput.value),
+        tipAmount: parseFloat(tipAmountInput.value),
+        additionalNotes: additionalNotesTextarea.value,
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      // Agregar servicio a la lista
+      services.push(newService);
+      
+      // Guardar en localStorage
+      localStorage.setItem('barberServices', JSON.stringify(services));
+      
+      // Actualizar métricas
+      updateMetrics();
+      
+      // Resetear formulario
+      serviceDataForm.reset();
+      additionalNotesTextarea.value = 'Sin Novedad';
+      serviceForm.style.display = 'none';
+      
+      // Quitar resaltado de botones
+      haircutBtn.classList.remove('service-btn-active');
+      beardBtn.classList.remove('service-btn-active');
+      fullBtn.classList.remove('service-btn-active');
+      
+      // Alerta de éxito
+      alert('Servicio guardado correctamente');
+    });
+    
+    // Función para actualizar las métricas
+    function updateMetrics() {
+      // Filtrar servicios por día actual
+      const today = new Date().toISOString().split('T')[0];
+      const todayServices = services.filter(service => service.date === today);
+      
+      // Calcular métricas
+      let totalCash = 0;
+      let totalTransfer = 0;
+      let haircutCount = 0;
+      let beardCount = 0;
+      let fullCount = 0;
+      let totalAdvance = 0;
+      let totalTips = 0;
+      
+      todayServices.forEach(service => {
+        if (service.paymentMethod === 'efectivo') {
+          totalCash += service.price;
+        } else if (service.paymentMethod === 'transferencia') {
+          totalTransfer += service.price;
+        }
+        
+        if (service.type === 'haircut') {
+          haircutCount++;
+        } else if (service.type === 'beard') {
+          beardCount++;
+        } else if (service.type === 'full') {
+          fullCount++;
+        }
+        
+        totalAdvance += service.advancePayment;
+        totalTips += service.tipAmount;
+      });
+      
+      const totalIncome = totalCash + totalTransfer;
+      const netProfit = (totalIncome * 0.5) + totalTips - totalAdvance;
+      
+      // Actualizar elementos de métricas
+      totalCashEl.textContent = `$${totalCash.toFixed(2)}`;
+      totalTransferEl.textContent = `$${totalTransfer.toFixed(2)}`;
+      totalIncomeEl.textContent = `$${totalIncome.toFixed(2)}`;
+      totalServicesEl.textContent = todayServices.length;
+      haircutCountEl.textContent = haircutCount;
+      beardCountEl.textContent = beardCount;
+      fullCountEl.textContent = fullCount;
+      totalTipsEl.textContent = `$${totalTips.toFixed(2)}`;
+      totalAdvanceEl.textContent = `$${totalAdvance.toFixed(2)}`;
+      netProfitEl.textContent = `$${netProfit.toFixed(2)}`;
+      
+      // Actualizar gráficos
+      updateCharts(haircutCount, beardCount, fullCount, totalCash, totalTransfer);
+      
+      // Update additional notes section
+      updateAdditionalNotes(todayServices);
+    }
+    
+    // Function to update the additional notes section
+    function updateAdditionalNotes(todayServices) {
+      const notesContainer = document.getElementById('additional-notes-list');
+      notesContainer.innerHTML = '';
+      
+      // Filter services with notes different from the default
+      const servicesWithNotes = todayServices.filter(service => 
+        service.additionalNotes && service.additionalNotes !== 'Sin Novedad'
+      );
+      
+      if (servicesWithNotes.length === 0) {
+        notesContainer.innerHTML = '<p class="text-muted">No hay notas adicionales registradas hoy.</p>';
+        return;
+      }
+      
+      // Create note cards for each service with custom notes
+      servicesWithNotes.forEach(service => {
+        const noteCard = document.createElement('div');
+        noteCard.className = 'note-card';
+        
+        const serviceType = {
+          'haircut': 'Corte de Cabello',
+          'beard': 'Corte de Barba',
+          'full': 'Servicio Completo'
+        }[service.type];
+        
+        noteCard.innerHTML = `
+          <div class="note-time">${serviceType} - ${service.entryTime}</div>
+          <div class="note-content">${service.additionalNotes}</div>
+        `;
+        
+        notesContainer.appendChild(noteCard);
+      });
+    }
+    
+    // Función para actualizar los gráficos
+    function updateCharts(haircutCount, beardCount, fullCount, totalCash, totalTransfer) {
+      // Destruir gráficos existentes si existen
+      if (servicesChart) {
+        servicesChart.destroy();
+      }
+      if (paymentChart) {
+        paymentChart.destroy();
+      }
+      
+      // Gráfico de tipos de servicio
+      const servicesCtx = document.getElementById('services-chart').getContext('2d');
+      servicesChart = new Chart(servicesCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Corte de Cabello', 'Corte de Barba', 'Servicio Completo'],
+          datasets: [{
+            data: [haircutCount, beardCount, fullCount],
+            backgroundColor: ['#3498db', '#2ecc71', '#e74c3c'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+      
+      // Gráfico de formas de pago
+      const paymentCtx = document.getElementById('payment-chart').getContext('2d');
+      paymentChart = new Chart(paymentCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Efectivo', 'Transferencia'],
+          datasets: [{
+            label: 'Cantidad',
+            data: [totalCash, totalTransfer],
+            backgroundColor: ['#f39c12', '#9b59b6'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+    
+    // Función para descargar PDF
+    document.getElementById('download-pdf').addEventListener('click', function() {
+      const { jsPDF } = window.jspdf;
+      
+      // Crear nueva instancia de jsPDF
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(22);
+      doc.text("Reporte Diario de Barbería", 105, 20, { align: "center" });
+      
+      // Fecha
+      const today = new Date();
+      const dateStr = today.toLocaleDateString();
+      doc.setFontSize(12);
+      doc.text(`Fecha: ${dateStr}`, 105, 30, { align: "center" });
+      
+      // Métricas
+      doc.setFontSize(14);
+      doc.text("Métricas del Día", 20, 45);
+      
+      doc.setFontSize(12);
+      doc.text(`Total Efectivo: ${totalCashEl.textContent}`, 20, 55);
+      doc.text(`Total Transferencia: ${totalTransferEl.textContent}`, 20, 65);
+      doc.text(`Total Ingresos: ${totalIncomeEl.textContent}`, 20, 75);
+      doc.text(`Cantidad Servicios: ${totalServicesEl.textContent}`, 20, 85);
+      doc.text(`Cortes de Cabello: ${haircutCountEl.textContent}`, 20, 95);
+      doc.text(`Cortes de Barba: ${beardCountEl.textContent}`, 20, 105);
+      doc.text(`Servicios Completos: ${fullCountEl.textContent}`, 20, 115);
+      doc.text(`Total Propinas: ${totalTipsEl.textContent}`, 20, 125);
+      doc.text(`Total Anticipos: ${totalAdvanceEl.textContent}`, 20, 135);
+      doc.text(`Ganancia Neta Diaria: ${netProfitEl.textContent}`, 20, 145);
+      
+      // Añadir Notas Adicionales del Día
+      doc.setFontSize(14);
+      doc.text("Notas Adicionales del Día", 20, 160);
+      doc.setFontSize(12);
+      
+      // Extraer las notas adicionales de todos los servicios del día
+      const notesContainer = document.getElementById('additional-notes-list');
+      
+      // Si no hay notas, mostrar mensaje por defecto
+      if (notesContainer.querySelector('.text-muted')) {
+        doc.text("No hay notas adicionales registradas hoy.", 20, 170);
+      } else {
+        // Extraer y formatear todas las notas del día
+        let yPos = 170;
+        const noteCards = notesContainer.querySelectorAll('.note-card');
+        
+        noteCards.forEach((card, index) => {
+          const timeEl = card.querySelector('.note-time');
+          const contentEl = card.querySelector('.note-content');
+          
+          if (timeEl && contentEl) {
+            // Si no hay suficiente espacio en la página actual, crear nueva página
+            if (yPos > 270) {
+              doc.addPage();
+              yPos = 20;
+            }
+            
+            doc.text(`${timeEl.textContent}: ${contentEl.textContent}`, 20, yPos);
+            yPos += 10;
+          }
+        });
+      }
+      
+      // Capturar los gráficos para agregarlos al PDF
+      html2canvas(document.getElementById('services-chart')).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Agregar nueva página para los gráficos
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text("Gráficos", 105, 20, { align: "center" });
+        
+        doc.addImage(imgData, 'PNG', 20, 30, 80, 60);
+        
+        html2canvas(document.getElementById('payment-chart')).then(canvas => {
+          const imgData2 = canvas.toDataURL('image/png');
+          doc.addImage(imgData2, 'PNG', 110, 30, 80, 60);
+          
+          // Guardar el PDF
+          doc.save(`Reporte_Barberia_${dateStr}.pdf`);
+        });
+      });
+    });
+    
+    // Inicializar métricas al cargar la página
+    updateMetrics();
+
+    // Función para reiniciar el día
+    document.getElementById('reset-day').addEventListener('click', function() {
+      if (confirm('¿Está seguro que desea reiniciar el día? Esta acción eliminará todos los servicios registrados hoy.')) {
+        // Limpiar los servicios en localStorage
+        localStorage.removeItem('barberServices');
+        services = [];
+        
+        // Resetear formulario
+        serviceDataForm.reset();
+        additionalNotesTextarea.value = 'Sin Novedad';
+        serviceForm.style.display = 'none';
+        
+        // Quitar resaltado de botones
+        haircutBtn.classList.remove('service-btn-active');
+        beardBtn.classList.remove('service-btn-active');
+        fullBtn.classList.remove('service-btn-active');
+        
+        // Actualizar métricas
+        updateMetrics();
+        
+        // Clear additional notes
+        document.getElementById('additional-notes-list').innerHTML = 
+          '<p class="text-muted">No hay notas adicionales registradas hoy.</p>';
+        
+        // Alerta de éxito
+        alert('El día ha sido reiniciado correctamente');
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.
