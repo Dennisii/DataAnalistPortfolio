@@ -101,7 +101,7 @@ compradores_estimados = n_visitas * P_Compra_Total
 compradores_simulados = compras.sum()
 variacion_simulada = (P_Compra_Simulada - P_Compra_Total) * 100
 
-print("📊 RESUMEN EJECUTIVO")
+print("RESUMEN EJECUTIVO")
 print("="*40)
 print(f"Probabilidad teórica calculada: {P_Compra_Total:.4f} ({P_Compra_Total*100:.2f}%)")
 print(f"Probabilidad simulada: {P_Compra_Simulada:.4f} ({P_Compra_Simulada*100:.2f}%)")
